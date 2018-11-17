@@ -72,6 +72,12 @@ CAMBIO_MANDAR	RES 1
 CAMBIO_RECIBIR	RES 1
 CONTADOR_INTERRUPCION	RES 1
 CONTADOR_WASALIR	RES 1
+MINIMO	    RES	    1
+MAXIMO	    RES	    1
+MOTOR1	    RES	    1
+MOTOR2	    RES	    1
+MOTOR3	    RES	    1
+MOTOR4	    RES	    1
 ;*******************************************************************************
 ; MAIN PROGRAM
 ;*******************************************************************************
@@ -130,15 +136,24 @@ SETUP
     CLRF    PORTC
     CALL    DELAY
     CALL    UART
+    MOVLW   .5
+    MOVWF    MINIMO
+    MOVLW   .150
+    MOVWF   MAXIMO
+    MOVLW   .85
+    MOVWF   MOTOR1
+    MOVWF   MOTOR2
+    MOVWF   MOTOR3
+    MOVWF   MOTOR4
 
 LOOP
-    BTFSS   ESTADO2,0
+    ;BTFSS   ESTADO2,0
     GOTO    LOOP_ADC
     GOTO    LOOP_SERIAL
     
 
 LOOP_ADC
-    BSF	    PIE1,5
+    ;BSF	    PIE1,5
     BSF	    ADCON0,GO
 LOOP2
     BTFSS   PIR1,4
@@ -162,6 +177,10 @@ LOOP4
     CALL    HIGH_SERVO3
     CALL    HIGH_SERVO4
 LOOP5
+    CALL    MOTOR_1
+    CALL    MOTOR_2
+    CALL    MOTOR_3
+    CALL    MOTOR_4
     CALL    SERVO_1
     CALL    SERVO_2
     CALL    SERVO_3
@@ -278,28 +297,121 @@ CANAL_3:
     CALL    DELAY
     RETURN
     
-SERVO_1:
+MOTOR_1:
+    ;CALL    DELAY
     MOVF    CHAN_5,0
+    SUBLW   .220
+    BTFSS   STATUS,C
+    GOTO    PRUEBA1.1
+    MOVF    CHAN_5,0
+    SUBLW   .50
+    BTFSC   STATUS,C
+    GOTO    PRUEBA1.2
+    RETURN
+PRUEBA1.1
+    MOVF    MINIMO,0
+    SUBWF   MOTOR1,0
+    BTFSC   STATUS,C	    ;MENOR QUE EL MINIMO
+    DECF    MOTOR1,1
+    RETURN
+PRUEBA1.2
+    MOVF    MAXIMO,0
+    SUBWF   MOTOR1,0
+    BTFSS   STATUS,C	    ;MAYOR QUE EL MAXIMO
+    INCF    MOTOR1,1
+    RETURN
+MOTOR_2:
+    ;CALL    DELAY
+    MOVF    CHAN_6,0
+    SUBLW   .220
+    BTFSS   STATUS,C
+    GOTO    PRUEBA2.1
+    MOVF    CHAN_6,0
+    SUBLW   .50
+    BTFSC   STATUS,C
+    GOTO    PRUEBA2.2
+    RETURN
+PRUEBA2.1
+    MOVF    MINIMO,0
+    SUBWF   MOTOR2,0
+    BTFSC   STATUS,C	    ;MENOR QUE EL MINIMO
+    DECF    MOTOR2,1
+    RETURN
+PRUEBA2.2
+    MOVF    MAXIMO,0
+    SUBWF   MOTOR2,0
+    BTFSS   STATUS,C	    ;MAYOR QUE EL MAXIMO
+    INCF    MOTOR2,1
+    RETURN
+MOTOR_3:
+    ;CALL    DELAY
+    MOVF    CHAN_2,0
+    SUBLW   .220
+    BTFSS   STATUS,C
+    GOTO    PRUEBA3.1
+    MOVF    CHAN_2,0
+    SUBLW   .50
+    BTFSC   STATUS,C
+    GOTO    PRUEBA3.2
+    RETURN
+PRUEBA3.1
+    MOVF    MINIMO,0
+    SUBWF   MOTOR3,0
+    BTFSC   STATUS,C	    ;MENOR QUE EL MINIMO
+    DECF    MOTOR3,1
+    RETURN
+PRUEBA3.2
+    MOVF    MAXIMO,0
+    SUBWF   MOTOR3,0
+    BTFSS   STATUS,C	    ;MAYOR QUE EL MAXIMO
+    INCF    MOTOR3,1
+    RETURN
+MOTOR_4:
+    ;CALL    DELAY
+    MOVF    CHAN_3,0
+    SUBLW   .220
+    BTFSS   STATUS,C
+    GOTO    PRUEBA4.1
+    MOVF    CHAN_3,0
+    SUBLW   .50
+    BTFSC   STATUS,C
+    GOTO    PRUEBA4.2
+    RETURN
+PRUEBA4.1
+    MOVF    MINIMO,0
+    SUBWF   MOTOR4,0
+    BTFSC   STATUS,C	    ;MENOR QUE EL MINIMO
+    DECF    MOTOR4,1
+    RETURN
+PRUEBA4.2
+    MOVF    MAXIMO,0
+    SUBWF   MOTOR4,0
+    BTFSS   STATUS,C	    ;MAYOR QUE EL MAXIMO
+    INCF    MOTOR4,1
+    RETURN
+    
+SERVO_1:
+    RRF    MOTOR1,0
     MOVWF   PROBAR
     RRF	    PROBAR,0
-    ANDLW   B'01111111'
+    ANDLW   B'00111111'
     MOVWF   CCPR1L
     RETURN  
 SERVO_2:
-    MOVF    CHAN_6,0
+    RRF    MOTOR2,0
     MOVWF   PROBAR
     RRF	    PROBAR,0
-    ANDLW   B'01111111'
+    ANDLW   B'00111111'
     MOVWF   CCPR2L
     RETURN
 SERVO_3:
-    MOVF    CHAN_2,0
+    MOVF    MOTOR3,0
     MOVWF   PROBAR
     ANDLW   B'11111111'
     MOVWF   CCPR3L  
     RETURN
 SERVO_4:
-    MOVF    CHAN_3,0
+    MOVF    MOTOR4,0
     MOVWF   PROBAR
     ANDLW   B'11111111'
     MOVWF   CCPR4L
@@ -308,16 +420,22 @@ SERVO_4:
     
     
 HIGH_SERVO3:
+    MOVF    CCPR3L,0
+    MOVWF   PROBAR
     BSF	    PORTC,0
-    DECFSZ  CCPR3L
+    DECFSZ  PROBAR
     GOTO    $-1
+    CALL    DELAYSITO
     BCF	    PORTC,0
     RETURN
     
 HIGH_SERVO4:
+    MOVF    CCPR4L,0
+    MOVWF   PROBAR
     BSF	    PORTC,3
-    DECFSZ  CCPR4L
+    DECFSZ  PROBAR
     GOTO    $-1
+    CALL    DELAYSITO
     BCF	    PORTC,3
     RETURN
     
@@ -328,6 +446,13 @@ DELAY:
     GOTO    $-1
     RETURN
 
+DELAYSITO:
+    MOVLW   .45                                    
+    MOVWF   PROBAR
+    DECFSZ  PROBAR,1
+    GOTO    $-1
+    RETURN
+    
 MANDAR_1:
     MOVF    CHAN_5,0
     MOVWF   TXREG
